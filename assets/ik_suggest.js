@@ -2,6 +2,7 @@
  
 var pluginName = "ik_suggest",
 	defaults = {
+		'instructions': "As you start typing the application might suggest similar search terms. Use up and down arrow keys to select a suggested search string.",
 		'minLength': 2,
 		'maxResults': 10,
 		'source': []
@@ -34,7 +35,12 @@ var pluginName = "ik_suggest",
 		plugin = this;
 		
 		plugin.notify = $('<div/>') // add hidden live region to be used by screen readers
-			.addClass('ik_readersonly');
+			.addClass('ik_readersonly')
+			.attr({
+				'role': 'region',
+				'aria-live': 'polite'
+			})
+			;
 		
 		$elem = plugin.element
 			.attr({
@@ -61,9 +67,9 @@ var pluginName = "ik_suggest",
 	 */
 	Plugin.prototype.onFocus = function (event) {
 		
-		var plugin;
-		
+		var plugin;		
 		plugin = event.data.plugin;
+		plugin.notify.text(plugin.options.instructions);
 
 	};
 	
@@ -114,6 +120,26 @@ var pluginName = "ik_suggest",
 		
 		plugin = event.data.plugin;
 		$me = $(event.currentTarget);
+
+		switch (event.keyCode) {
+			case ik_utils.keys.down: // select next suggestion from list   
+						selected = plugin.list.find('.selected');  
+						if(selected.length) {
+							msg = selected.removeClass('selected').next().addClass('selected').text();
+						} else {
+							msg = plugin.list.find('li:first').addClass('selected').text();
+						}
+						plugin.notify.text(msg); // add suggestion text to live region to be read by screen reader
+						break;
+					case ik_utils.keys.up: // select previous suggestion from list
+						selected = plugin.list.find('.selected');
+						if(selected.length) {
+							msg = selected.removeClass('selected').prev().addClass('selected').text();
+						}
+						plugin.notify.text(msg);  // add suggestion text to live region to be read by screen reader    
+						break;
+				   
+					default: // get suggestions based on user input
 			
 				plugin.list.empty();
 				
@@ -129,8 +155,9 @@ var pluginName = "ik_suggest",
 				} else {
 					plugin.list.hide();
 				}
-
-	};
+				break;
+			}
+	}
 	
 	/** 
 	 * Handles fosucout event on text field.
@@ -193,6 +220,9 @@ var pluginName = "ik_suggest",
 					r.push(arr[i].replace(regex, '<span>$1</span>'));
 				}
 			}
+		}
+		if (r.length > 1) { // add instructions to hidden live area
+			this.notify.text('Suggestions are available for this field. Use up and down arrows to select a suggestion and enter key to use it.');
 		}
 
 		return r;
